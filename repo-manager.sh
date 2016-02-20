@@ -5,7 +5,7 @@
 
 start() {
   echo "Would you like to combine all scripts into one or have them separated by name?"
-  options=(combined "separate (recommended)")
+  options=(combined "separate (recommended)" cancel)
   PS3="#? "
   select choice in "${options[@]}"
   do
@@ -17,6 +17,10 @@ start() {
 
       "separate (recommended)")
         startSeparateLogs
+        break
+        ;;
+
+      cancel)
         break
         ;;
 
@@ -52,16 +56,13 @@ stop() {
 
 force() {
   for pid in $(pgrep rubies)
-    do
-      kill -9 "$pid"
+  do kill -9 "$pid"
   done
   for pid in $(pgrep gulp)
-    do
-      kill -9 "$pid"
+  do kill -9 "$pid"
   done
   for pid in $(pgrep beam)
-    do
-      kill -9 "$pid"
+  do kill -9 "$pid"
   done
   echo "Forced quit all ruby, gulp, elixir"
 }
@@ -81,42 +82,42 @@ setup() {
   # RVM
   taggedPrint "INSTALL" "Checking if bundle is installed..."
   if type -p rvm > /dev/null
-    then
-      taggedPrint "INSTALL" "Installing rvm..."
-      curl -L https://get.rvm.io | bash -s stable --auto-dotfiles --autolibs=enable --rails
-      taggedPrint "INSTALL" "Finished installing rvm"
-    else
-      taggedPrint "INSTALL" "rvm already installed"
+  then
+    taggedPrint "INSTALL" "Installing rvm..."
+    curl -L https://get.rvm.io | bash -s stable --auto-dotfiles --autolibs=enable --rails
+    taggedPrint "INSTALL" "Finished installing rvm"
+  else
+    taggedPrint "INSTALL" "rvm already installed"
   fi
   taggedPrint "INSTALL" "Finished installing rvm"
   # Bundle/Gems
   taggedPrint "INSTALL" "Checking if bundle is installed..."
   if type -p bundle > /dev/null
-    then
-      taggedPrint "INSTALL" "Installing bundler..."
-      gem install bundle
-      taggedPrint "INSTALL" "Finished installing bundler"
-    else
-      taggedPrint "INSTALL" "Bundler already installed"
+  then
+    taggedPrint "INSTALL" "Installing bundler..."
+    gem install bundle
+    taggedPrint "INSTALL" "Finished installing bundler"
+  else
+    taggedPrint "INSTALL" "Bundler already installed"
   fi
   taggedPrint "INSTALL" "Checking if zeus is installed"
   if type -p zeus > /dev/null
-    then
-      taggedPrint "INSTALL" "Installing zeus..."
-      gem install zeus
-      taggedPrint "INSTALL" "Finished installing zeus"
-    else
-      taggedPrint "INSTALL" "zeus already installed"
+  then
+    taggedPrint "INSTALL" "Installing zeus..."
+    gem install zeus
+    taggedPrint "INSTALL" "Finished installing zeus"
+  else
+    taggedPrint "INSTALL" "zeus already installed"
   fi
   # Brew (itself)
   taggedPrint "INSTALL" "Checking if zeus is installed"
   if type -p brew > /dev/null
-    then
-      taggedPrint "INSTALL" "Installing brew"
-      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-      taggedPrint "INSTALL" "Finished installing brew"
-    else
-      taggedPrint "INSTALL" "brew already installed"
+  then
+    taggedPrint "INSTALL" "Installing brew"
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    taggedPrint "INSTALL" "Finished installing brew"
+  else
+    taggedPrint "INSTALL" "brew already installed"
   fi
   # Get user to give oauth access to brew to avoid rate limiting from github
   read -p "Brew uses github API to find and install your favourite tools.
@@ -128,44 +129,44 @@ setup() {
   taggedPrint "INSTALL" "Adding brew taps..."
   # cask comes automatically now and versions is used to install previous versions of software
   for tap in "homebrew/versions"
-    do
-      taggedPrint "INSTALL" "Adding $tap tap"
-      brew tap $tap
-      taggedPrint "INSTALL" "Finished adding $tap tap"
+  do
+    taggedPrint "INSTALL" "Adding $tap tap"
+    brew tap $tap
+    taggedPrint "INSTALL" "Finished adding $tap tap"
   done
   taggedPrint "INSTALL"  "Finished adding brew taps"
   # Brews
   taggedPrint "INSTALL" "Installing brew packages..."
   for pkg in "hr" "elixir" "git" "postgresql" "elasticsearch" "python" "procdog"
-    do
-      if [ ! $(brew list $pkg) ]
-        then
-          taggedPrint "INSTALL" "Installing $pkg"
-          brew install $pkg
-          taggedPrint "INSTALL" "Finished installing $pkg"
-        else
-          taggedPrint "INSTALL" "$pkg already installed"
-      fi
+  do
+    if [ ! $(brew list $pkg) ]
+    then
+      taggedPrint "INSTALL" "Installing $pkg"
+      brew install $pkg
+      taggedPrint "INSTALL" "Finished installing $pkg"
+    else
+      taggedPrint "INSTALL" "$pkg already installed"
+    fi
   done
   taggedPrint "INSTALL"  "Finished installing brew packages"
   # NVM/NPM
   taggedPrint "INSTALL"  "Checking if nvm is installed..."
   if type -p nvm > /dev/null
-    then
-      taggedPrint "INSTALL"  "Installing nvm..."
-      curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.0/install.sh | bash
-      taggedPrint "INSTALL"  "Finished installing nvm"
-    else
-      taggedPrint "INSTALL"  "nvm already installed"
+  then
+    taggedPrint "INSTALL"  "Installing nvm..."
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.0/install.sh | bash
+    taggedPrint "INSTALL"  "Finished installing nvm"
+  else
+    taggedPrint "INSTALL"  "nvm already installed"
   fi
   taggedPrint "INSTALL"  "Checking if npm is installed..."
   if type -p npm > /dev/null
-    then
-      taggedPrint "INSTALL"  "Installing npm..."
-      curl -L https://www.npmjs.com/install.sh | sh
-      taggedPrint "INSTALL"  "Finished installing npm"
-    else
-      taggedPrint "INSTALL"  "npm already installed"
+  then
+    taggedPrint "INSTALL"  "Installing npm..."
+    curl -L https://www.npmjs.com/install.sh | sh
+    taggedPrint "INSTALL"  "Finished installing npm"
+  else
+    taggedPrint "INSTALL"  "npm already installed"
   fi
 }
 
@@ -288,10 +289,10 @@ chooseReplaceDatabaseConfig() {
 chooseDIYDatabaseConfig() {
   read -p "Edit config/database.yml. Would you like me to open it? [Yy/Nn] "
   if [[ $REPLY =~ ^[Yy] ]]
-    then
-      pushd $1
-      open ./config/database.yml
-      popd
+  then
+    pushd $1
+    open ./config/database.yml
+    popd
   fi
   echo "Under 'development:', replace 'database: [DATABASE_NAME]' with the following:
   database: <%= ENV['ISOLATE_DEVELOPMENT_DATABASE'] || [DATABASE_NAME] %>
@@ -332,7 +333,7 @@ test:
 removeIsolateArtifacts() {
   isolateDatabases=$(psql -l -t | grep isolate | cut -d "|" -f 1)
   for db in $isolateDatabases
-    do psql -c "DROP DATABASE "$db
+  do psql -c "DROP DATABASE "$db
   done
 }
 
@@ -340,7 +341,7 @@ removeIsolateArtifacts() {
 
 waitFor() {
   while [[ $(procdog status $1) != "exited"* && $(procdog status $1) != "stopped" ]]
-    do sleep 0.5
+  do sleep 0.5
   done
 }
 
@@ -351,18 +352,18 @@ taggedPrint() {
 
 printUsage() {
   if [[ $1 == "input" ]]
-    then
-      echo "Usage: $0 $(IFS='|'; echo "${options[*]}")"
-      exit 1
-    else
-      array=()
-      for i in "${!options[@]}"
-        do
-          number=$((i + 1))
-          array+=($number)
-      done
-      echo "Choices are: $(IFS='|'; echo "${options[*]}")"
-      echo "Enter $(IFS='|'; echo "${array[*]}")"
+  then
+    echo "Usage: $0 $(IFS='|'; echo "${options[*]}")"
+    exit 1
+  else
+    array=()
+    for i in "${!options[@]}"
+    do
+      number=$((i + 1))
+      array+=($number)
+    done
+    echo "Choices are: $(IFS='|'; echo "${options[*]}")"
+    echo "Enter $(IFS='|'; echo "${array[*]}")"
   fi
 }
 
@@ -424,20 +425,19 @@ printChoices() {
   echo "You have several choices: start/stop all apps, prepare/clean the apps, check status/logs or force quit all apps, checkout features/branches, setup dependencies to run this program, or quit this program (this program will not quit until you select this option or force quit)"
   PS3="#? "
   select opt in "${options[@]}"
-  do
-    execChoice "$opt" "select"
+  do execChoice "$opt" "select"
   done
 }
 
 if [ $1 ]
-  then
+then
+  options=(start stop prepare clean status logs force checkout setup quit)
+  execChoice "$1" "input"
+  exit 0
+else
+  while true
+  do
     options=(start stop prepare clean status logs force checkout setup quit)
-    execChoice "$1" "input"
-    exit 0
-  else
-    while true
-      do
-        options=(start stop prepare clean status logs force checkout setup quit)
-        printChoices
-    done
+    printChoices
+  done
 fi
