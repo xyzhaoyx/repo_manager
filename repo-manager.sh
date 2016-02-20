@@ -1,5 +1,38 @@
 #!/bin/bash
 
+# Initialize variables/config
+CONFIG_FILE=~/.repo-manager.conf
+touch $CONFIG_FILE
+declare -A config
+FILE_NAME=${0//\.\//}
+APP_NAME=${FILE_NAME%%[^a-zA-Z\-]*}
+
+# If no bash, install one immediately (if that's even possible)
+if [ ! $BASH_VERSION ]
+then
+  echo "You do not have bash installed. To use $APP_NAME, you must have bash 4 installed"
+  read -p "Would you like me to install bash 4.3.30 for you? If you answer no, too bad, you can't use this script [Yy/Nn]"
+  if [[ $REPLY =~ ^[Yy] ]]
+  then
+    BASH_DOWNLOAD_FILE="bash-4.3.30"
+    curl -L "http://gnu.mirror.vexxhost.com/bash/$BASH_DOWNLOAD_FILE.tar.gz" | tar xz
+    pushd "./$BASH_DOWNLOAD_FILE"
+    sh ./configure --prefix=/usr/local --silent && make install
+    popd
+    BASH_LOCATION=/usr/local/bin/bash
+    if [ ! $(cat /etc/shells | grep "$BASH_LOCATION") ]
+    then
+      echo "It appears that you $BASH_LOCATION is not in the list of permitted shells"
+      echo "Please enter your password so we can add $BASH_LOCATION"
+      sudo echo "$BASH_LOCATION" >> /etc/shells
+      echo "Added $BASH_LOCATION to list of permitted shells"
+    fi
+    chsh -s "$BASH_LOCATION"
+    $BASH_LOCATION
+    exit 0
+  fi
+fi
+
 # Stuff to add:
 # mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
 
@@ -137,7 +170,7 @@ setup() {
   taggedPrint "INSTALL"  "Finished adding brew taps"
   # Brews
   taggedPrint "INSTALL" "Installing brew packages..."
-  for pkg in "hr" "elixir" "git" "postgresql" "elasticsearch" "python" "procdog"
+  for pkg in "bash" "hr" "elixir" "git" "postgresql" "elasticsearch" "python" "procdog"
   do
     if [ ! $(brew list $pkg) ]
     then
@@ -367,6 +400,28 @@ printUsage() {
   fi
 }
 
+# Read
+readConfig() {
+  IFS="="
+  while read -r key value
+    do
+      if [ $value ]
+      then config[$key]=${value//\"/}
+      fi
+  done < $CONFIG_FILE
+}
+
+# Write
+writeConfig() {
+  declare -A config=( [username]=matrinox [host]=localhost [dev-folder]=~/Developer/ )
+  echo > $CONFIG_FILE
+  for key in "${!config[@]}"
+  do
+    value=${config[$key]}
+    echo "$key=$value" >> $CONFIG_FILE
+  done
+}
+
 # Main menu (choicess)
 
 execChoice() {
@@ -428,6 +483,10 @@ printChoices() {
   do execChoice "$opt" "select"
   done
 }
+
+# Starting point of app, after defining everything above because bash can't read things properly
+
+readConfig
 
 if [ $1 ]
 then
