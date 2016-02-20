@@ -80,25 +80,44 @@ clean() {
 
 setup() {
   # RVM
+  taggedPrint "INSTALL" "Checking if bundle is installed..."
   if type -p rvm > /dev/null
-    then curl -L https://get.rvm.io | bash -s stable --auto-dotfiles --autolibs=enable --rails
+    then
+      taggedPrint "INSTALL" "Installing rvm..."
+      curl -L https://get.rvm.io | bash -s stable --auto-dotfiles --autolibs=enable --rails
+      taggedPrint "INSTALL" "Finished installing rvm"
+    else
+      taggedPrint "INSTALL" "rvm already installed"
   fi
+  taggedPrint "INSTALL" "Finished installing rvm"
   # Bundle/Gems
-  echo "Checking if bundle is installed..."
+  taggedPrint "INSTALL" "Checking if bundle is installed..."
   if type -p bundle > /dev/null
     then
-      echo "Installing bundler..."
+      taggedPrint "INSTALL" "Installing bundler..."
       gem install bundle
-      echo "Finished installing bundler"
+      taggedPrint "INSTALL" "Finished installing bundler"
     else
-      echo "Bundler already installed"
+      taggedPrint "INSTALL" "Bundler already installed"
   fi
+  taggedPrint "INSTALL" "Checking if zeus is installed"
   if type -p zeus > /dev/null
-    then gem install zeus
+    then
+      taggedPrint "INSTALL" "Installing zeus..."
+      gem install zeus
+      taggedPrint "INSTALL" "Finished installing zeus"
+    else
+      taggedPrint "INSTALL" "zeus already installed"
   fi
   # Brew (itself)
+  taggedPrint "INSTALL" "Checking if zeus is installed"
   if type -p brew > /dev/null
-    then /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    then
+      taggedPrint "INSTALL" "Installing brew"
+      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+      taggedPrint "INSTALL" "Finished installing brew"
+    else
+      taggedPrint "INSTALL" "brew already installed"
   fi
   # Get user to give oauth access to brew to avoid rate limiting from github
   read -p "Brew uses github API to find and install your favourite tools.
@@ -107,39 +126,47 @@ setup() {
   echo "export HOMEBREW_GITHUB_API_TOKEN=$REPLY" >> ~/.bashrc
   echo "The token is added to homebrew! (via ~/.bashrc)"
   # Brew taps
-  echo "Adding brew taps..."
+  taggedPrint "INSTALL" "Adding brew taps..."
   # cask comes automatically now and versions is used to install previous versions of software
   for tap in "homebrew/versions"
-    do brew tap $tap
+    do
+      taggedPrint "INSTALL" "Adding $tap tap"
+      brew tap $tap
+      taggedPrint "INSTALL" "Finished adding $tap tap"
   done
-  echo "Finished adding brew taps"
+  taggedPrint "INSTALL"  "Finished adding brew taps"
   # Brews
-  echo "Installing brew packages..."
+  taggedPrint "INSTALL" "Installing brew packages..."
   for pkg in "hr" "elixir" "git" "postgresql" "elasticsearch" "python" "procdog"
     do
       if [ ! $(brew list $pkg) ]
-        then brew install $pkg
+        then
+          taggedPrint "INSTALL" "Installing $pkg"
+          brew install $pkg
+          taggedPrint "INSTALL" "Finished installing $pkg"
+        else
+          taggedPrint "INSTALL" "$pkg already installed"
       fi
   done
-  echo "Finished installing brew packages"
+  taggedPrint "INSTALL"  "Finished installing brew packages"
   # NVM/NPM
-  echo "Checking if nvm is installed..."
+  taggedPrint "INSTALL"  "Checking if nvm is installed..."
   if type -p nvm > /dev/null
     then
-      echo "Installing nvm..."
+      taggedPrint "INSTALL"  "Installing nvm..."
       curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.0/install.sh | bash
-      echo "Finished installing nvm"
+      taggedPrint "INSTALL"  "Finished installing nvm"
     else
-      echo "nvm already installed"
+      taggedPrint "INSTALL"  "nvm already installed"
   fi
-  echo "Checking if npm is installed..."
+  taggedPrint "INSTALL"  "Checking if npm is installed..."
   if type -p npm > /dev/null
     then
-      echo "Installing npm..."
+      taggedPrint "INSTALL"  "Installing npm..."
       curl -L https://www.npmjs.com/install.sh | sh
-      echo "Finished installing npm"
+      taggedPrint "INSTALL"  "Finished installing npm"
     else
-      echo "npm already installed"
+      taggedPrint "INSTALL"  "npm already installed"
   fi
 }
 
@@ -319,7 +346,8 @@ waitFor() {
 }
 
 taggedPrint() {
-  echo "[$1] ${*:2}"
+  tag=$(echo $1 | tr '[:lower:]' '[:upper:]')
+  echo "[$tag] ${*:2}"
 }
 
 printUsage() {
