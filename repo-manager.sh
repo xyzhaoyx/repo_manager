@@ -1,28 +1,27 @@
 #!/bin/bash
 
-# Options
-options=(start stop prepare clean status logs force checkout setup quit)
-
 # Stuff to add:
 # mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
 
 start() {
   echo "Would you like to combine all scripts into one or have them separated by name?"
-  options=(combined separate)
+  options=(combined "separate (recommended)")
   PS3="#? "
   select choice in "${options[@]}"
   do
     case "$choice" in
       combined)
         startAllLogs
+        break
         ;;
 
-      separate)
+      "separate (recommended)")
         startSeparateLogs
+        break
         ;;
 
       *)
-        printUsage "select" "${options[@]}"
+        printUsage "select"
         ;;
     esac
   done
@@ -275,7 +274,7 @@ presentDatabaseConfigChoices() {
         break
         ;;
       *)
-        printUsage "select" "${options[@]}"
+        printUsage "select"
         ;;
     esac
   done
@@ -351,19 +350,18 @@ taggedPrint() {
 }
 
 printUsage() {
-  IFS=' ' read -r -a opts <<< "${*:2}"
   if [[ $1 == "input" ]]
     then
-      echo "Usage: $0 $(IFS='|'; echo "${opts[*]}")"
+      echo "Usage: $0 $(IFS='|'; echo "${options[*]}")"
       exit 1
     else
       array=()
-      for i in "${!opts[@]}"
+      for i in "${!options[@]}"
         do
           number=$((i + 1))
           array+=($number)
       done
-      echo "Choices are: $(IFS='|'; echo "${opts[*]}")"
+      echo "Choices are: $(IFS='|'; echo "${options[*]}")"
       echo "Enter $(IFS='|'; echo "${array[*]}")"
   fi
 }
@@ -374,34 +372,42 @@ execChoice() {
   case "$1" in
     start)
       start
+      break
       ;;
 
     logs)
       logs
+      break
       ;;
 
     prepare)
       prepare
+      break
       ;;
 
     stop)
       stop
+      break
       ;;
 
     force)
       force
+      break
       ;;
 
     checkout)
       checkout
+      break
       ;;
 
     clean)
       clean
+      break
       ;;
 
     setup)
       setup
+      break
       ;;
 
     quit)
@@ -409,20 +415,29 @@ execChoice() {
       ;;
 
     *)
-      printUsage "$2" "${options[@]}"
+      printUsage "$2"
       ;;
   esac
 }
 
+printChoices() {
+  echo "You have several choices: start/stop all apps, prepare/clean the apps, check status/logs or force quit all apps, checkout features/branches, setup dependencies to run this program, or quit this program (this program will not quit until you select this option or force quit)"
+  PS3="#? "
+  select opt in "${options[@]}"
+  do
+    execChoice "$opt" "select"
+  done
+}
+
 if [ $1 ]
   then
+    options=(start stop prepare clean status logs force checkout setup quit)
     execChoice "$1" "input"
     exit 0
   else
-    echo "You have several choices: start/stop all apps, prepare/clean the apps, check status/logs or force quit all apps, checkout features/branches, setup dependencies to run this program, or quit this program (this program will not quit until you select this option or force quit)"
-    PS3="#? "
-    select opt in "${options[@]}"
-    do
-      execChoice "$opt" "select"
+    while true
+      do
+        options=(start stop prepare clean status logs force checkout setup quit)
+        printChoices
     done
 fi
