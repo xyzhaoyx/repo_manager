@@ -1,11 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Initialize variables/config
-CONFIG_FILE=~/.repo-manager.conf
-touch $CONFIG_FILE
-declare -A config
-FILE_NAME=${0//\.\//}
-APP_NAME=${FILE_NAME%%[^a-zA-Z\-]*}
+BASH_LOCATION=/usr/local/bin/bash
 
 # If no bash, install one immediately (if that's even possible)
 if [ ! $BASH_VERSION ]
@@ -33,8 +28,17 @@ then
   fi
 fi
 
+## Initialize variables/config
+CONFIG_FILE=~/.repo-manager.conf
+touch $CONFIG_FILE
+declare -A config=()
+FILE_NAME=${0//\.\//}
+APP_NAME=${FILE_NAME%%[^a-zA-Z\-]*}
+
 # Stuff to add:
 # mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+
+## Choices
 
 start() {
   echo "Would you like to combine all scripts into one or have them separated by name?"
@@ -170,7 +174,7 @@ setup() {
   taggedPrint "INSTALL"  "Finished adding brew taps"
   # Brews
   taggedPrint "INSTALL" "Installing brew packages..."
-  for pkg in "bash" "hr" "elixir" "git" "postgresql" "elasticsearch" "python" "procdog"
+  for pkg in "bash" "hr" "elixir" "git" "postgresql" "elasticsearch" "python"
   do
     if [ ! $(brew list $pkg) ]
     then
@@ -181,6 +185,21 @@ setup() {
       taggedPrint "INSTALL" "$pkg already installed"
     fi
   done
+  # Brew casks
+  taggedPrint "INSTALL" "Installing brew casks (apps)..."
+  for pkg in "redis" "git" "postgres" "elasticsearch" "python" "postman" "google-chrome" "google-chrome-beta" "google-chrome-canary" "google-chrome-dev" "chrome-devtools" "iterm2"
+  do
+    if [ ! $(brew list $pkg) ]
+    then
+      taggedPrint "INSTALL" "Installing $pkg"
+      brew cask install $pkg
+      taggedPrint "INSTALL" "Finished installing $pkg"
+    else
+      taggedPrint "INSTALL" "$pkg already installed"
+    fi
+  done
+  # Pip (python packages)
+  sudo pip install "procdog"
   taggedPrint "INSTALL"  "Finished installing brew packages"
   # NVM/NPM
   taggedPrint "INSTALL"  "Checking if nvm is installed..."
@@ -209,7 +228,7 @@ quit() {
   exit 0
 }
 
-# Helpers
+## Choice Helpers
 
 startAllLogs() {
   procdog start chevron-zeus --dir="$HOME/Developer/chevron" --command="zeus start" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
@@ -370,7 +389,7 @@ removeIsolateArtifacts() {
   done
 }
 
-# Utility
+## Utility
 
 waitFor() {
   while [[ $(procdog status $1) != "exited"* && $(procdog status $1) != "stopped" ]]
@@ -400,6 +419,7 @@ printUsage() {
   fi
 }
 
+## Config
 # Read
 readConfig() {
   IFS="="
@@ -413,7 +433,7 @@ readConfig() {
 
 # Write
 writeConfig() {
-  declare -A config=( [username]=matrinox [host]=localhost [dev-folder]=~/Developer/ )
+  config=( [username]=matrinox [host]=localhost [dev-folder]=~/Developer/ )
   echo > $CONFIG_FILE
   for key in "${!config[@]}"
   do
@@ -422,7 +442,13 @@ writeConfig() {
   done
 }
 
-# Main menu (choicess)
+# Add to config
+addConfig() {
+  config[$1] = ${*:2}
+  writeConfig
+}
+
+## Main menu (choicess)
 
 execChoice() {
   case "$1" in
@@ -484,7 +510,7 @@ printChoices() {
   done
 }
 
-# Starting point of app, after defining everything above because bash can't read things properly
+## Starting point of app, after defining everything above because bash can't read things properly
 
 readConfig
 
