@@ -433,7 +433,6 @@ readConfig() {
 
 # Write
 writeConfig() {
-  config=( [username]=matrinox [host]=localhost [dev-folder]=~/Developer/ )
   echo > $CONFIG_FILE
   for key in "${!config[@]}"
   do
@@ -448,48 +447,59 @@ addConfig() {
   writeConfig
 }
 
+devRoot() {
+  if [[ -z ${config[dev-folder]} ]]
+  then
+    read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
+    addConfig "dev-folder" $devRoot
+    echo $devRoot
+  else
+    echo ${config[dev-folder]}
+  fi
+}
+
 ## Main menu (choicess)
 
 execChoice() {
   case "$1" in
     start)
       start
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     logs)
       logs
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     prepare)
       prepare
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     stop)
       stop
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     force)
       force
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     checkout)
       checkout
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     clean)
       clean
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     setup)
       setup
-      break
+      if [[ $1 == "select" ]]; then break; fi
       ;;
 
     quit)
@@ -514,15 +524,13 @@ printChoices() {
 
 readConfig
 
+options=(start stop prepare clean status logs force checkout setup quit)
 if [ $1 ]
 then
-  options=(start stop prepare clean status logs force checkout setup quit)
   execChoice "$1" "input"
   exit 0
 else
   while true
-  do
-    options=(start stop prepare clean status logs force checkout setup quit)
-    printChoices
+  do printChoices
   done
 fi
