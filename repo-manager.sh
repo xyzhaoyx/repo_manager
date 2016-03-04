@@ -107,29 +107,21 @@ force() {
 
 checkout() {
   # No point listing the branches here; which repo would you show the branches from? And remote/local?
-  read -p "Which branch do you want to checkout? " branch
-  echo "You have two options. Create separate database for this branch or just checkout the branch. The first option
- (isolate) is faster to switch between but requires much longer setup while the second option is faster initially but
- you either have migration conflicts or have to spend time migrating/rolling back (which can be tricky)"
- checkoutChoices=("isolate (recommended)" fast)
-  select opt in ${checkoutChoices[@]}
-  do
-    case $opt in
-      "isolate (recommended)")
-        isolateCheckout "$branch"
-        break
-        ;;
-
-      fast)
-        normalCheckout "$branch"
-        break
-        ;;
-
-      *)
-        ;;
-    esac
-  done
+  if hasBuffer
+  then
+    branch=$(popBuffer)
+  else
+    read -p "Which branch do you want to checkout? " branch
+  fi
+  if hasBuffer
+  then
+    inputCheckoutChoice "$(popBuffer)"
+  else
+    chooseCheckoutChoice
+  fi
 }
+
+
 
 clean() {
   removeIsolateArtifacts
@@ -319,7 +311,47 @@ holonet:
 
 # Checkout
 
-normalCheckout() {
+chooseCheckoutChoice() {
+  echo "You have two options. Create separate database for this branch or just checkout the branch. The first option
+ (isolate) is faster to switch between but requires much longer setup while the second option is faster initially but
+ you either have migration conflicts or have to spend time migrating/rolling back (which can be tricky)"
+  options=("isolate (recommended)" fast cancel)
+  select opt in ${options[@]}
+  do
+    selectCheckoutChoice "$opt" "select"
+  done
+}
+
+inputCheckoutChoice() {
+  options=("isolate (recommended)" fast cancel)
+  number=$1
+  opt="${options[$((number - 1))]}"
+  selectCheckoutChoice "$opt" "input"
+}
+
+selectCheckoutChoice() {
+  case "$1" in
+    "isolate (recommended)")
+      isolateCheckout "$branch"
+      if [ "$2" == "select" ]; then break; fi
+      ;;
+
+    fast)
+      fastCheckout "$branch"
+      if [ "$2" == "select" ]; then break; fi
+      ;;
+
+    cancel)
+      if [ "$2" == "select" ]; then break; fi
+      ;;
+
+    *)
+      printUsage "select"
+      ;;
+  esac
+}
+
+fastCheckout() {
   goToOrCreateBranch "$(devRoot)chevron" "$1"
   goToOrCreateBranch "$(devRoot)vaderboats" "$1"
   goToOrCreateBranch "$(devRoot)factors" "$1"
@@ -535,9 +567,27 @@ devRoot() {
   if [[ -z ${config[$DEV_ROOT_KEY]} ]]
   then
     read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
-    addConfig dev-root $devRoot
+    addConfig $DEV_ROOT_KEY $devRoot
   fi
   echo ${config[$DEV_ROOT_KEY]}
+}
+
+## Input buffer (use this without going through menus)
+hasBuffer() {
+  IFS=" "
+  read -r -a input < /tmp/repo-manager-input-buffer
+  if ((${#input[@]}))
+  then return 0
+  else return 1
+  fi
+}
+
+popBuffer() {
+  IFS=" "
+  read -r -a input < /tmp/repo-manager-input-buffer
+  popped=${input[@]:0:1}
+  echo "${input[@]:1}" > /tmp/repo-manager-input-buffer
+  echo $popped
 }
 
 ## Main menu (choicess)
@@ -614,6 +664,7 @@ readConfig
 
 if [ $1 ]
 then
+  echo ${*:2} > /tmp/repo-manager-input-buffer
   options=(start stop prepare clean status logs force checkout setup settings quit)
   execChoice "$1" "input"
   exit 0
