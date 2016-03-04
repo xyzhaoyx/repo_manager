@@ -34,6 +34,7 @@ touch $CONFIG_FILE
 declare -A config=()
 FILE_NAME=${0//\.\//}
 APP_NAME=${FILE_NAME%%[^a-zA-Z\-]*}
+DEV_ROOT_KEY="dev-root"
 
 # Stuff to add:
 # mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
@@ -93,15 +94,9 @@ stop() {
 
 force() {
   declare -a pids=()
-  while read -r line
-  do pids+=("$line")
-  done <<< "$(pgrep rubies)"
-  while read -r line
-  do pids+=("$line")
-  done <<< "$(pgrep gulp)"
-  while read -r line
-  do pids+=("$line")
-  done <<< "$(pgrep beam)"
+  pids+=($(pgrep rubies))
+  pids+=($(pgrep gulp))
+  pids+=($(pgrep beam))
   for pid in "${pids[@]}"
   do
     echo "killing off $pid"
@@ -250,8 +245,22 @@ setup() {
 
 settings() {
   echo "Which settings would you like to change? "
-  read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
-  addConfig dev-root $devRoot
+  options=("root project" cancel)
+  select opt in "${options[@]}"
+  do
+    case "$opt" in
+      "root project")
+        setRootProject
+        break
+        ;;
+      cancel)
+        break
+        ;;
+      *)
+        printUsage "select"
+        ;;
+    esac
+  done
 }
 
 quit() {
@@ -442,6 +451,21 @@ removeIsolateArtifacts() {
   done
 }
 
+setRootProject() {
+  if [[ ! -z ${config[$DEV_ROOT_KEY]} ]]
+  then
+    echo "Current root project folder: ${config[$DEV_ROOT_KEY]}"
+  fi
+  read -p "Please enter the path to parent directory of the repos (e.g. ~ or ~/): " devRoot
+  # Convert devRoot from string into non-string
+  eval devRoot=$devRoot
+  # Add backslash
+  fullDevRoot=$(realpath $devRoot)/
+  addConfig $DEV_ROOT_KEY $fullDevRoot
+  readConfig
+  echo "New root project folder: ${config[$DEV_ROOT_KEY]}"
+}
+
 ## Utility
 
 waitFor() {
@@ -508,12 +532,12 @@ devRoot() {
   # are not copied back to the original shell. Unless there's a better solution than using files as
   # a global, this is the only way to do lazy loading of config
   readConfig
-  if [[ -z ${config[dev-root]} ]]
+  if [[ -z ${config[$DEV_ROOT_KEY]} ]]
   then
     read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
     addConfig dev-root $devRoot
   fi
-  echo ${config[dev-root]}
+  echo ${config[$DEV_ROOT_KEY]}
 }
 
 ## Main menu (choicess)
