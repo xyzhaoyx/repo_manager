@@ -70,14 +70,14 @@ start() {
 }
 
 logs() {
-  tail -f "$HOME/Developer/repo-manager/all.log" "$HOME/Developer/repo-manager/error.log" # "$HOME/Developer/repo-manager/chevron-zeus.log" "$HOME/Developer/repo-manager/chevron-zeus-error.log" "$HOME/Developer/repo-manager/chevron-server.log" "$HOME/Developer/repo-manager/chevron-server-error.log" "$HOME/Developer/repo-manager/vaderboats.log" "$HOME/Developer/repo-manager/vaderboats-error.log" "$HOME/Developer/repo-manager/factors-zeus.log" "$HOME/Developer/repo-manager/factors-zeus-error.log" "$HOME/Developer/repo-manager/factors-server.log" "$HOME/Developer/repo-manager/factors-server-error.log" "$HOME/Developer/repo-manager/factors-ernicorn.log" "$HOME/Developer/repo-manager/factors-ernicorn-error.log" "$HOME/Developer/repo-manager/holonet.log" "$HOME/Developer/repo-manager/holonet-error.log"
+  tail -f "$(devRoot)repo-manager/all.log" "$(devRoot)repo-manager/error.log" # "$(devRoot)repo-manager/chevron-zeus.log" "$(devRoot)repo-manager/chevron-zeus-error.log" "$(devRoot)repo-manager/chevron-server.log" "$(devRoot)repo-manager/chevron-server-error.log" "$(devRoot)repo-manager/vaderboats.log" "$(devRoot)repo-manager/vaderboats-error.log" "$(devRoot)repo-manager/factors-zeus.log" "$(devRoot)repo-manager/factors-zeus-error.log" "$(devRoot)repo-manager/factors-server.log" "$(devRoot)repo-manager/factors-server-error.log" "$(devRoot)repo-manager/factors-ernicorn.log" "$(devRoot)repo-manager/factors-ernicorn-error.log" "$(devRoot)repo-manager/holonet.log" "$(devRoot)repo-manager/holonet-error.log"
 }
 
 prepare() {
-  procdog start chevron-prepare --dir="$HOME/Developer/chevron" --command="bundle install && rake db:migrate" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start vaderboats-prepare --dir="$HOME/Developer/Vaderboats" --command="nvm install && npm install" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start factors-prepare --dir="$HOME/Developer/factors" --command="bundle install" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start holonet --dir="$HOME/Developer/holonet" --command="mix deps.get && mix deps.compile && mix ecto.create && mix ecto.migrate" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
+  procdog start chevron-prepare --dir="$(devRoot)chevron" --command="bundle install && rake db:migrate" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start vaderboats-prepare --dir="$(devRoot)Vaderboats" --command="nvm install && npm install" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start factors-prepare --dir="$(devRoot)factors" --command="bundle install" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start holonet --dir="$(devRoot)holonet" --command="mix deps.get && mix deps.compile && mix ecto.create && mix ecto.migrate" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
 }
 
 stop() {
@@ -92,22 +92,48 @@ stop() {
 }
 
 force() {
-  for pid in $(pgrep rubies)
-  do kill -9 "$pid"
-  done
-  for pid in $(pgrep gulp)
-  do kill -9 "$pid"
-  done
-  for pid in $(pgrep beam)
-  do kill -9 "$pid"
+  declare -a pids=()
+  while read -r line
+  do pids+=("$line")
+  done <<< "$(pgrep rubies)"
+  while read -r line
+  do pids+=("$line")
+  done <<< "$(pgrep gulp)"
+  while read -r line
+  do pids+=("$line")
+  done <<< "$(pgrep beam)"
+  for pid in "${pids[@]}"
+  do
+    echo "killing off $pid"
+    kill -9 "$pid"
   done
   echo "Forced quit all ruby, gulp, elixir"
 }
 
 checkout() {
-  normalCheckout
-  OR
-  isolateCheckout
+  # No point listing the branches here; which repo would you show the branches from? And remote/local?
+  read -p "Which branch do you want to checkout? " branch
+  echo "You have two options. Create separate database for this branch or just checkout the branch. The first option
+ (isolate) is faster to switch between but requires much longer setup while the second option is faster initially but
+ you either have migration conflicts or have to spend time migrating/rolling back (which can be tricky)"
+ checkoutChoices=("isolate (recommended)" fast)
+  select opt in ${checkoutChoices[@]}
+  do
+    case $opt in
+      "isolate (recommended)")
+        isolateCheckout "$branch"
+        break
+        ;;
+
+      fast)
+        normalCheckout "$branch"
+        break
+        ;;
+
+      *)
+        ;;
+    esac
+  done
 }
 
 clean() {
@@ -222,6 +248,12 @@ setup() {
   fi
 }
 
+settings() {
+  echo "Which settings would you like to change? "
+  read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
+  addConfig dev-root $devRoot
+}
+
 quit() {
   echo "NOTE: quitting this app won't stop the running programs. Select stop to actually stop them"
   echo "Bye!"
@@ -231,13 +263,14 @@ quit() {
 ## Choice Helpers
 
 startAllLogs() {
-  procdog start chevron-zeus --dir="$HOME/Developer/chevron" --command="zeus start" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start chevron-server --dir="$HOME/Developer/chevron" --command="rails server" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start vaderboats --dir="$HOME/Developer/Vaderboats" --command="gulp" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start factors-zeus --dir="$HOME/Developer/factors" --command="zeus start" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start factors-server --dir="$HOME/Developer/factors" --command="rails server" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start factors-ernicorn --dir="$HOME/Developer/factors" --command="ernicorn" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
-  procdog start holonet --dir="$HOME/Developer/holonet" --command="mix phoenix.server" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
+  # config
+  # procdog start chevron-zeus --dir="$(devRoot)chevron" --command="zeus start" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start chevron-server --dir="$(devRoot)chevron" --command="rails server" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start vaderboats --dir="$(devRoot)Vaderboats" --command="gulp" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  # procdog start factors-zeus --dir="$(devRoot)factors" --command="zeus start" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  # procdog start factors-server --dir="$(devRoot)factors" --command="rails server" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  # procdog start factors-ernicorn --dir="$(devRoot)factors" --command="ernicorn" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
+  procdog start holonet --dir="$(devRoot)holonet" --command="mix phoenix.server" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
   echo \
 "The logs are as follows:
 app:
@@ -249,13 +282,13 @@ app:
 }
 
 startSeparateLogs() {
-  procdog start chevron-zeus --dir="$HOME/Developer/chevron" --command="zeus start" --stdout="$HOME/Developer/repo-manager/chevron-zeus.log" --stderr="$HOME/Developer/repo-manager/chevron-zeus-error.log" --append
-  procdog start chevron-server --dir="$HOME/Developer/chevron" --command="rails server" --stdout="$HOME/Developer/repo-manager/chevron-server.log" --stderr="$HOME/Developer/repo-manager/chevron-server-error.log" --append
-  procdog start vaderboats --dir="$HOME/Developer/Vaderboats" --command="gulp" --stdout="$HOME/Developer/repo-manager/vaderboats.log" --stderr="$HOME/Developer/repo-manager/vaderboats-error.log" --append
-  procdog start factors-zeus --dir="$HOME/Developer/factors" --command="zeus start" --stdout="$HOME/Developer/repo-manager/factors-zeus.log" --stderr="$HOME/Developer/repo-manager/factors-zeus-error.log" --append
-  procdog start factors-server --dir="$HOME/Developer/factors" --command="rails server" --stdout="$HOME/Developer/repo-manager/factors-server.log" --stderr="$HOME/Developer/repo-manager/factors-server-error.log" --append
-  procdog start factors-ernicorn --dir="$HOME/Developer/factors" --command="ernicorn" --stdout="$HOME/Developer/repo-manager/factors-ernicorn.log" --stderr="$HOME/Developer/repo-manager/factors-ernicorn-error.log" --append
-  procdog start holonet --dir="$HOME/Developer/holonet" --command="mix phoenix.server" --stdout="$HOME/Developer/repo-manager/holonet.log" --stderr="$HOME/Developer/repo-manager/holonet-error.log" --append
+  procdog start chevron-zeus --dir="$(devRoot)chevron" --command="zeus start" --stdout="$(devRoot)repo-manager/chevron-zeus.log" --stderr="$(devRoot)repo-manager/chevron-zeus-error.log" --append
+  procdog start chevron-server --dir="$(devRoot)chevron" --command="rails server" --stdout="$(devRoot)repo-manager/chevron-server.log" --stderr="$(devRoot)repo-manager/chevron-server-error.log" --append
+  procdog start vaderboats --dir="$(devRoot)Vaderboats" --command="gulp" --stdout="$(devRoot)repo-manager/vaderboats.log" --stderr="$(devRoot)repo-manager/vaderboats-error.log" --append
+  procdog start factors-zeus --dir="$(devRoot)factors" --command="zeus start" --stdout="$(devRoot)repo-manager/factors-zeus.log" --stderr="$(devRoot)repo-manager/factors-zeus-error.log" --append
+  procdog start factors-server --dir="$(devRoot)factors" --command="rails server" --stdout="$(devRoot)repo-manager/factors-server.log" --stderr="$(devRoot)repo-manager/factors-server-error.log" --append
+  procdog start factors-ernicorn --dir="$(devRoot)factors" --command="ernicorn" --stdout="$(devRoot)repo-manager/factors-ernicorn.log" --stderr="$(devRoot)repo-manager/factors-ernicorn-error.log" --append
+  procdog start holonet --dir="$(devRoot)holonet" --command="mix phoenix.server" --stdout="$(devRoot)repo-manager/holonet.log" --stderr="$(devRoot)repo-manager/holonet-error.log" --append
   echo \
 "The logs are as follows:
 app:
@@ -275,24 +308,44 @@ holonet:
   mix phoenix.server | holonet-zeus.log | holonet-zeus-error.log"
 }
 
+# Checkout
+
+normalCheckout() {
+  goToOrCreateBranch "$(devRoot)chevron" "$1"
+  goToOrCreateBranch "$(devRoot)vaderboats" "$1"
+  goToOrCreateBranch "$(devRoot)factors" "$1"
+  goToOrCreateBranch "$(devRoot)holonet" "$1"
+}
+
+# Checkouts branch or creates it if it doesn't exist
+goToOrCreateBranch() {
+  pushd "$1"
+  git checkout "$2"
+  if [ $? == 1 ]
+  then
+    git checkout -b "$2"
+  fi
+  popd
+}
+
 isolate() {
-  isolateDatabase "$HOME/Developer/chevron"
-  setupDatabase "$HOME/Developer/chevron"
+  isolateDatabase "$(devRoot)chevron"
+  setupDatabase "$(devRoot)chevron"
 }
 
 isolateCheckout() {
-  explainDatabaseConfig "$HOME/Developer/chevron"
+  explainDatabaseConfig "$(devRoot)chevron"
 }
 
 isolateDatabase() {
   pushd "$1"
-  psql -c "CREATE DATABASE isolate_"databaseBranchName
+  psql -c "CREATE DATABASE isolate_$(databaseBranchName)"
   popd
 }
 
 setupDatabase() {
   pushd "$1"
-  procdog start chevron-setup --dir="$HOME/Developer/chevron" --command="bundle install && rake db:create db:migrate" --stdout="$HOME/Developer/repo-manager/all.log" --stderr="$HOME/Developer/repo-manager/error.log" --append
+  procdog start chevron-setup --dir="$(devRoot)chevron" --command="bundle install && rake db:create db:migrate" --stdout="$(devRoot)repo-manager/all.log" --stderr="$(devRoot)repo-manager/error.log" --append
   popd
 }
 
@@ -443,19 +496,24 @@ writeConfig() {
 
 # Add to config
 addConfig() {
-  config[$1] = ${*:2}
+  config[$1]=${*:2}
   writeConfig
 }
 
+## Config function calls
 devRoot() {
-  if [[ -z ${config[dev-folder]} ]]
+  # See this example stackoverflow on why we must read from file every time:
+  # http://stackoverflow.com/questions/7502981/how-to-call-and-get-the-output-of-a-shell-function-without-forking-a-sub-shell
+  # Basically, because we could call this function in a subshell - $() or `` - changes made to config
+  # are not copied back to the original shell. Unless there's a better solution than using files as
+  # a global, this is the only way to do lazy loading of config
+  readConfig
+  if [[ -z ${config[dev-root]} ]]
   then
     read -p "Please enter the path to parent directory of the repos (end with slash, e.g. ~/): " devRoot
-    addConfig "dev-folder" $devRoot
-    echo $devRoot
-  else
-    echo ${config[dev-folder]}
+    addConfig dev-root $devRoot
   fi
+  echo ${config[dev-root]}
 }
 
 ## Main menu (choicess)
@@ -464,42 +522,47 @@ execChoice() {
   case "$1" in
     start)
       start
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     logs)
       logs
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     prepare)
       prepare
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     stop)
       stop
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     force)
       force
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     checkout)
       checkout
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     clean)
       clean
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
+      ;;
+
+    settings)
+      settings
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     setup)
       setup
-      if [[ $1 == "select" ]]; then break; fi
+      if [ "$2" == "select" ]; then break; fi
       ;;
 
     quit)
@@ -516,7 +579,8 @@ printChoices() {
   echo "You have several choices: start/stop all apps, prepare/clean the apps, check status/logs or force quit all apps, checkout features/branches, setup dependencies to run this program, or quit this program (this program will not quit until you select this option or force quit)"
   PS3="#? "
   select opt in "${options[@]}"
-  do execChoice "$opt" "select"
+  do
+    execChoice "$opt" "select"
   done
 }
 
@@ -524,13 +588,15 @@ printChoices() {
 
 readConfig
 
-options=(start stop prepare clean status logs force checkout setup quit)
 if [ $1 ]
 then
+  options=(start stop prepare clean status logs force checkout setup settings quit)
   execChoice "$1" "input"
   exit 0
 else
   while true
-  do printChoices
+  do
+    options=(start stop prepare clean status logs force checkout setup settings quit)
+    printChoices
   done
 fi
