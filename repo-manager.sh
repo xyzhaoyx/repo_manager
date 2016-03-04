@@ -354,7 +354,7 @@ selectCheckoutChoice() {
 fastCheckout() {
   goToOrCreateBranch "$(devRoot)chevron" "$1"
   goToOrCreateBranch "$(devRoot)vaderboats" "$1"
-  goToOrCreateBranch "$(devRoot)factors" "$1"
+  # goToOrCreateBranch "$(devRoot)factors" "$1"
   goToOrCreateBranch "$(devRoot)holonet" "$1"
 }
 
