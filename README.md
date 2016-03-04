@@ -11,6 +11,14 @@ Manages all repos, prepares environment, runs it in the background, and shows st
 bash ./repo-manager.sh
 ```
 
+Use cases:
+
+1. Checkout branches on all repos w/ exact name (and create one if none exists)
+     
+    ```bash
+    ./repo-manager.sh checkout [branch-name] 2
+    ```
+
 ## Contributing
 
 Create a PR with a description of what it does and how it accomplishes it. Follow the style in the existing code or fallback to Google's shell style: https://google.github.io/styleguide/shell.xml
